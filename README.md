@@ -12,4 +12,4 @@ As can be seen in the following GIFs:
 
 Original Video            |  Skeletonized Video
 :-------------------------:|:-------------------------:
-![](https://i.imgur.com/9wYNsIe.gif) |  ![](https://i.imgur.com/pdZOEB9.gif)
+![](https://github.com/DeJaVoo/partial-openpose/blob/master/site/walking.gif) |  ![](https://github.com/DeJaVoo/partial-openpose/blob/master/site/waling-skeleton.gif)
