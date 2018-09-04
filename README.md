@@ -12,7 +12,7 @@ As can be seen in the following GIFs:
 
 Original Video            |  Skeletonized Video
 :-------------------------:|:-------------------------:
-<img src="https://github.com/DeJaVoo/partial-openpose/blob/master/site/walking.gif" width="480" height="360" /> |  <img src="https://github.com/DeJaVoo/partial-openpose/blob/master/site/walking-skeleton.gif" width="480" height="360" />
+<img src="site/walking.gif" width="480" height="360" /> |  <img src="site/walking-skeleton.gif" width="480" height="360" />
 
 **Project requirements:**
 
