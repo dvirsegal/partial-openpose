@@ -13,3 +13,15 @@ As can be seen in the following GIFs:
 Original Video            |  Skeletonized Video
 :-------------------------:|:-------------------------:
 <img src="https://github.com/DeJaVoo/partial-openpose/blob/master/site/walking.gif" width="480" height="360" /> |  <img src="https://github.com/DeJaVoo/partial-openpose/blob/master/site/walking-skeleton.gif" width="480" height="360" />
+
+**Project requirements:**
+
+* python 3.5 or above
+* numpy
+* opencv
+* download [tf-pose-estimation](https://github.com/ildoonet/tf-pose-estimation) - release date 16.02.18
+* make sure the tf-pose-estimation folder is on the same level of partial-openpose folder
+* make sure to change all relative paths
+
+To run the project, use python generate_partial_skeleton_from_video.py
+
