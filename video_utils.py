@@ -13,7 +13,7 @@ def split_video(vid_path, out_path):
     while success:
         success, image = vidcap.read()
         if success:
-            resized_image = cv2.resize(image, (432, 368), interpolation=cv2.INTER_CUBIC)
+            resized_image = cv2.resize(image, (432, 368), interpolation=cv2.INTER_AREA)
             cv2.imwrite("{}\\{}.png".format(out_path, count), resized_image)
             count += 1
 
