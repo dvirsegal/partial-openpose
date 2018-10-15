@@ -10,6 +10,7 @@ import gc
 import common
 from estimator import TfPoseEstimator
 from networks import get_graph_path, model_wh
+import video_utils
 
 
 def create_affined_image(image, pts_src, pts_dst):
@@ -62,7 +63,7 @@ def draw_human(npimg, humans, imgcopy=False):
     image_h, image_w = npimg.shape[:2]
     centers = {}
 
-    pair = (0,None)
+    pair = (0, None)
 
     for h in humans:
         temp = 0
@@ -114,7 +115,6 @@ def skeletonize(estimator, given_image, hip, image_name):
     w = 432
     h = 368
     scales = None
-
 
     # Load dummy image
     dummy_image = common.read_imgfile('./images/full_body1.png', None, None)
@@ -177,9 +177,198 @@ def skeletonize(estimator, given_image, hip, image_name):
     cv2.imwrite(".\\images\\results\\{}.png".format(image_name), legs_image)
     print("Wrote image #{} to results folder".format(image_name))
 
-    del legs_image, merged_image,merged_image_parts,firstPersonHipX,affined_dummy_image,dummy_image_parts, dummy_image
+    del legs_image, merged_image, merged_image_parts, firstPersonHipX, affined_dummy_image, dummy_image_parts, dummy_image
     gc.collect()
 
+
+def find_translated_rmse():
+    # read upper and bottom images
+    uppper_images = video_utils.load_images_from_folder("./images/upper/")
+    bottom_images = video_utils.load_images_from_folder("./images/bottom/")
+    w = 432
+    h = 368
+    scales = None
+    # create OpenPose estimator
+    estimator = TfPoseEstimator(get_graph_path('mobilenet_thin'), target_size=(w, h))
+    for upper in uppper_images:
+        for bottom in bottom_images:
+            for factor in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]:
+                # for factor in [0]:
+                # merge between upper and bottom
+                merged_image = 255 * np.ones((h, w, 3), np.uint8)
+                # create affined image
+                height_u, width_u, channels = upper.shape
+
+                pts1 = np.float32([[0, width_u],
+                                   [height_u, 0],
+                                   [height_u, width_u]])
+
+                height_b, width_b, channels = bottom.shape
+                pts2 = np.float32([[factor, width_b],
+                                   [factor + height_b, 0],
+                                   [factor + height_b, width_b]])
+
+                affined_image = create_affined_image(upper, pts1, pts2)
+                # cv2.imshow('affined result', affined_image)
+                # cv2.waitKey()
+                # Merge the two images until the hip coordinate
+                merged_image[0:height_u, :] = affined_image[:, :]
+                minVal = min(h - height_u, height_b)
+                merged_image[height_u:height_u + minVal, :] = bottom[0:minVal, :]
+                # cv2.imshow('Merged Image', merged_image)
+                # cv2.waitKey()
+                # calculate the merged image skeleton
+                no_skeleton = False
+                merged_image_parts = estimator.inference(merged_image, scales=scales)
+                for pair_order, pair in enumerate(common.CocoPairsRender):
+                    if pair[0] not in merged_image_parts[0].body_parts.keys() or pair[1] not in merged_image_parts[
+                        0].body_parts.keys():
+                        no_skeleton = True
+                        break
+                if not no_skeleton:
+                    # draw skeleton on image
+                    merged_image_skeleton = TfPoseEstimator.draw_humans(merged_image, merged_image_parts, imgcopy=True)
+                    # present the skeleton
+                    cv2.imshow('merged person result', merged_image_skeleton)
+                    cv2.waitKey()
+                    cv2.destroyAllWindows()
+                else:
+                    print("No full skeleton for factor {}".format(factor))
+
+
+def find_scaled_rmse():
+    # read upper and bottom images
+    uppper_images = video_utils.load_images_from_folder("./images/upper/")
+    bottom_images = video_utils.load_images_from_folder("./images/bottom/")
+    w = 432
+    h = 368
+    scales = None
+    # create OpenPose estimator
+    estimator = TfPoseEstimator(get_graph_path('mobilenet_thin'), target_size=(w, h))
+    for upper in uppper_images:
+        for bottom in bottom_images:
+            for factor in [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+                # for factor in [0]:
+                # merge between upper and bottom
+
+                # create affined image
+                height_u, width_u, channels = upper.shape
+
+                pts1 = np.float32([[0, width_u],
+                                   [height_u, 0],
+                                   [height_u, width_u]])
+
+                height_b, width_b, channels = bottom.shape
+                cv2.imshow('bottom result', bottom)
+                cv2.waitKey()
+                # Scale down and pad
+                scaled_bottom = cv2.resize(bottom, (int(width_b * factor), int(height_b * factor)), fx=factor,
+                                           fy=factor, interpolation=cv2.INTER_AREA)
+                height_b, width_b, channels = scaled_bottom.shape
+                pts2 = np.float32([[factor, width_b],
+                                   [factor + height_b, 0],
+                                   [factor + height_b, width_b]])
+
+                cv2.imshow('scaled bottom result', scaled_bottom)
+                cv2.waitKey()
+
+                affined_image = create_affined_image(upper, pts1, pts2)
+                cv2.imshow('affined result #1', affined_image)
+                cv2.waitKey()
+
+                gray = cv2.cvtColor(affined_image, cv2.COLOR_BGR2GRAY)
+                gray = cv2.medianBlur(gray, 3)
+
+                ret, thresh = cv2.threshold(gray, 1, 255, 0)
+                image, contours,hierarchy= cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+                max_area = -1
+                best_cnt = None
+
+                for cnt in contours:
+
+                    area = cv2.contourArea(cnt)
+                    if area > max_area:
+                        max_area = area
+                        best_cnt = cnt
+
+                approx = cv2.approxPolyDP(best_cnt, 0.01 * cv2.arcLength(best_cnt, True), True)
+                far = approx[np.product(approx, 2).argmax()][0]
+                # ymax = approx[approx[:, :, 0] == 1].max()
+                # xmax = far[0]
+                # x = min(far[0], xmax)
+                # y = min(far[1], ymax)
+                affined_image = affined_image[:far[1], :far[0]].copy()
+                cv2.imshow('affined result #2', affined_image)
+                cv2.waitKey()
+
+                # Merge the two images until the hip coordinate
+                height_u, width_u, channels = affined_image.shape
+                minWidth = min(width_u,width_b)
+                merged_image = 255 * np.ones((height_u + height_b, minWidth, 3), np.uint8)
+                merged_image[0:height_u, :] = affined_image[:, 0:minWidth]
+                merged_image[height_u:height_u + height_b, :] = scaled_bottom[:, 0:minWidth]
+                cv2.imshow('Merged Image', merged_image)
+                cv2.waitKey()
+
+                delta_w = w - int(minWidth * factor)
+                delta_h = h -  int((height_u + height_b) * factor)
+                top_d, bottom_d = delta_h // 2, delta_h - (delta_h // 2)
+                left_d, right_d = delta_w // 2, delta_w - (delta_w // 2)
+
+                color = [255, 255, 255]
+                merged_image = cv2.copyMakeBorder(merged_image, top_d, bottom_d, left_d, right_d, cv2.BORDER_CONSTANT,
+                                            value=color)
+
+                # merged_image = cv2.resize(merged_image,(w,h),interpolation=cv2.INTER_CUBIC)
+                cv2.imshow('padded merged image', merged_image)
+                cv2.waitKey()
+
+                # calculate the merged image skeleton
+                no_skeleton = False
+                merged_image_parts = estimator.inference(merged_image, scales=scales)
+                for pair_order, pair in enumerate(common.CocoPairsRender):
+                    if pair[0] not in merged_image_parts[0].body_parts.keys() or pair[1] not in merged_image_parts[
+                        0].body_parts.keys():
+                        no_skeleton = True
+                        break
+
+                if not no_skeleton:
+                    # draw skeleton on image
+                    merged_image_skeleton = TfPoseEstimator.draw_humans(merged_image, merged_image_parts, imgcopy=True)
+                    # present the skeleton
+                    cv2.imshow('merged person result', merged_image_skeleton)
+                    cv2.waitKey()
+                else:
+                    print("No full skeleton for factor {}".format(factor))
+
+                cv2.destroyAllWindows()
+
+def calculate_rmse(merged_image_parts, second_image_parts):
+    xSource = []
+    ySource = []
+    xDest = []
+    yDest = []
+    for i in [8, 9, 10, 11, 12, 13]:
+        x1 = merged_image_parts[0].body_parts[i].x * h
+        xDest.append(x1)
+        x2 = second_image_parts[0].body_parts[i].x * h
+        xSource.append(x2)
+        y1 = merged_image_parts[0].body_parts[i].y * w
+        yDest.append(y1)
+        y2 = second_image_parts[0].body_parts[i].y * w
+        ySource.append(y2)
+    mseX = ((np.array(xSource) - np.array(xDest)) ** 2).mean()
+    mseY = ((np.array(ySource) - np.array(yDest)) ** 2).mean()
+    rmseX = np.sqrt(mseX)
+    rmseY = np.sqrt(mseY)
+    totalRMSE = np.sqrt(1 / xSource.__len__() * (mseX + mseX))
+    return rmseX, rmseY, totalRMSE
+
+
+if __name__ == '__main__':
+    # find_translated_rmse()
+    find_scaled_rmse()
 
 if __name__ == '__main__':
     # This main purpose is to demonstrate the accuracy of partial OpenPose method
@@ -253,25 +442,7 @@ if __name__ == '__main__':
     cv2.waitKey()
 
     # Calculate Root MSE score between original and merged skeletons
-    xSource = []
-    ySource = []
-    xDest = []
-    yDest = []
-    for i in [8, 9, 10, 11, 12, 13]:
-        x1 = merged_image_parts[0].body_parts[i].x * h
-        xDest.append(x1)
-        x2 = second_image_parts[0].body_parts[i].x * h
-        xSource.append(x2)
-        y1 = merged_image_parts[0].body_parts[i].y * w
-        yDest.append(y1)
-        y2 = second_image_parts[0].body_parts[i].y * w
-        ySource.append(y2)
-
-    mseX = ((np.array(xSource) - np.array(xDest)) ** 2).mean()
-    mseY = ((np.array(ySource) - np.array(yDest)) ** 2).mean()
-    rmseX = np.sqrt(mseX)
-    rmseY = np.sqrt(mseY)
-    totalRMSE = np.sqrt(1 / xSource.__len__() * (mseX + mseX))
+    rmseX, rmseY, totalRMSE = calculate_rmse(merged_image_parts, second_image_parts)
     LKneeX = second_image_parts[0].body_parts[12].x * h
     LKneeY = second_image_parts[0].body_parts[12].y * w
     LAnkleX = second_image_parts[0].body_parts[13].x * h

@@ -17,15 +17,6 @@ class CoordinateStore:
             self.points.append((x, y))
 
 
-def load_images_from_folder(folder):
-    images = []
-    for filename in os.listdir(folder):
-        image = cv2.imread(os.path.join(folder, filename))
-        if image is not None:
-            images.append(image)
-    return images
-
-
 if __name__ == '__main__':
     input_folder = "./videos/walking/"
     results_folder = "./images/results/"
@@ -35,7 +26,7 @@ if __name__ == '__main__':
     video_utils.split_video(input_video, input_folder)
     print("Video was splited")
     print("Loading all images")
-    images = load_images_from_folder(input_folder)
+    images = video_utils.load_images_from_folder(input_folder)
     print("Loaded {} images from {} folder".format(images.__len__(), input_folder))
     first_image = images[0]
     # instantiate class

@@ -1,6 +1,13 @@
 import cv2
 import os
 
+def load_images_from_folder(folder):
+    images = []
+    for filename in os.listdir(folder):
+        image = cv2.imread(os.path.join(folder, filename))
+        if image is not None:
+            images.append(image)
+    return images
 
 def split_video(vid_path, out_path):
     if not os.path.exists(out_path):
