@@ -11,6 +11,7 @@ import video_utils
 from OptimalParams import OptimalParams
 from estimator import TfPoseEstimator
 from networks import get_graph_path
+import pickle
 
 
 def create_affined_image(image, pts_src, pts_dst):
@@ -209,8 +210,8 @@ def translation(estimator, upper, bottom, scale_factor):
                            [translate_factor + height_b, width_b]])
 
         translated_affined_image = create_affined_image(upper, pts1, pts2)
-        # cv2.imshow('affined result', affined_image)
-        # cv2.waitKey()
+        cv2.imshow('affined result', translated_affined_image)
+        cv2.waitKey()
 
         # Merge the two images until the hip coordinate
         height_u, width_u, channels = translated_affined_image.shape
@@ -252,9 +253,12 @@ def translation(estimator, upper, bottom, scale_factor):
 
 
 def find_optimal_scaled_translated():
+    # get pre-process bounding boxes of bottom parts
+    with open('human_points.pickle', 'rb') as handle:
+        bboxes_bottom = pickle.load(handle)
     # read upper and bottom images
     uppper_images = video_utils.load_images_from_folder("./images/upper/")
-    bottom_images = video_utils.load_images_from_folder("./images/bottom/")
+    bottom_images = video_utils.load_images_from_folder("./images/bottom/",True)
     w = 432
     h = 368
     # create OpenPose estimator
@@ -270,16 +274,22 @@ def find_optimal_scaled_translated():
                                    [height_u, 0],
                                    [height_u, width_u]])
 
-                height_b, width_b, channels = bottom.shape
-                cv2.imshow('bottom result', bottom)
+                height_b, width_b, channels = bottom[0].shape
+                cv2.imshow('bottom result', bottom[0])
                 cv2.waitKey()
                 # Scale down and pad
-                scaled_bottom = cv2.resize(bottom, (int(width_b * factor), int(height_b * factor)), fx=factor,
+                scaled_bottom = cv2.resize(bottom[0], (int(width_b * factor), int(height_b * factor)), fx=factor,
                                            fy=factor, interpolation=cv2.INTER_AREA)
                 height_b, width_b, channels = scaled_bottom.shape
-                pts2 = np.float32([[factor, width_b],
-                                   [factor + height_b, 0],
-                                   [factor + height_b, width_b]])
+
+                pts2 = []
+                for item in bboxes_bottom:
+                    if item[0] == bottom[1] and item[1] == factor:
+                        pts2 = item[2]
+                if pts2.size == 0:
+                    pts2 = np.float32([[0, width_b],
+                                       [height_b, 0],
+                                       [height_b, width_b]])
 
                 cv2.imshow('scaled bottom result', scaled_bottom)
                 cv2.waitKey()
@@ -288,40 +298,20 @@ def find_optimal_scaled_translated():
                 cv2.imshow('affined result #1', upper_affined_image)
                 cv2.waitKey()
 
+                # remove black pixel from affined image
+                # 1 Convert image into grayscale, and make in binary image for threshold value of 1.
                 gray = cv2.cvtColor(upper_affined_image, cv2.COLOR_BGR2GRAY)
-                gray = cv2.medianBlur(gray, 3)
-
-                ret, thresh = cv2.threshold(gray, 1, 255, 0)
-                image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-
-                max_area = -1
-                best_cnt = None
-
-                for cnt in contours:
-
-                    area = cv2.contourArea(cnt)
-                    if area > max_area:
-                        max_area = area
-                        best_cnt = cnt
-
-                approx = cv2.approxPolyDP(best_cnt, 0.01 * cv2.arcLength(best_cnt, True), True)
-                far = approx[np.product(approx, 2).argmax()][0]
-                # ymax = approx[approx[:, :, 0] == 1].max()
-                # xmax = far[0]
-                # x = min(far[0], xmax)
-                # y = min(far[1], ymax)
-                upper_affined_image = upper_affined_image[:far[1], :far[0]].copy()
-                # cv2.imshow('affined result #2', affined_image)
-                # cv2.waitKey()
+                ret, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
+                # 2  Find contours in image. There will be only one object, so find bounding rectangle for it
+                image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                cnt = contours[0]
+               # 3 Crop image and save it to another one
+                x, y, w, h = cv2.boundingRect(cnt)
+                upper_affined_image = upper_affined_image[y:y + h, x:x + w].copy()
+                cv2.imshow('affined result #2', upper_affined_image)
+                cv2.waitKey()
 
                 translation(estimator, upper_affined_image, scaled_bottom, factor)
-                # scores = []
-                # rmse = []
-                # for parm in optimalParamsList:
-                #     scores.append(parm.score)
-                #     rmse.append(parm.rmse)
-                # r = rmse / np.linalg.norm(rmse)
-                # s = scores / np.linalg.norm(scores)
 
 
 if __name__ == '__main__':
