@@ -84,10 +84,10 @@ class OptimalParams(object):
             y1 = None
             x2 = None
             y2 = None
-            if self._first_image_parts.__contains__(0) and self._first_image_parts[0].body_parts.__contains__(i):
+            if len(self._first_image_parts) == 1 and self._first_image_parts[0].body_parts.__contains__(i):
                 x1 = self._first_image_parts[0].body_parts[i].x * self.h
                 y1 = self._first_image_parts[0].body_parts[i].y * self.w
-            if self._second_image_parts.__contains__(0) and self._second_image_parts[0].body_parts.__contains__(i):
+            if len(self._second_image_parts) == 1 and self._second_image_parts[0].body_parts.__contains__(i):
                 x2 = self._second_image_parts[0].body_parts[i].x * self.h
                 y2 = self._second_image_parts[0].body_parts[i].y * self.w
             if x1 is not None and x2 is not None and y1 is not None and y2 is not None:
@@ -110,15 +110,6 @@ class OptimalParams(object):
         :return:
         """
         for i in range(0, 17):
-            if self._first_image_parts.__contains__(0) and self._first_image_parts[0].body_parts.__contains__(i):
+            if len(self._first_image_parts) == 1 and self._first_image_parts[0].body_parts.__contains__(i):
                 self._score += body_parts[0].body_parts[i].score
 
-    def normalize(self, values):
-        """
-        Scale to a 0 mean and unit variance
-        :param values:
-        :return:
-        """
-        x = np.asarray(values)
-        res = (x - x.mean()) / x.std()
-        return res

@@ -210,8 +210,9 @@ def translation(estimator, upper, bottom, scale_factor):
                            [translate_factor + height_b, width_b]])
 
         translated_affined_image = create_affined_image(upper, pts1, pts2)
-        cv2.imshow('affined result', translated_affined_image)
-        cv2.waitKey()
+        if display_images:
+            cv2.imshow('affined result', translated_affined_image)
+            cv2.waitKey()
 
         # Merge the two images until the hip coordinate
         height_u, width_u, channels = translated_affined_image.shape
@@ -219,8 +220,9 @@ def translation(estimator, upper, bottom, scale_factor):
         merged_image = 255 * np.ones((height_u + height_b, minWidth, 3), np.uint8)
         merged_image[0:height_u, :] = translated_affined_image[:, 0:minWidth]
         merged_image[height_u:height_u + height_b, :] = bottom[:, 0:minWidth]
-        cv2.imshow('Merged Image', merged_image)
-        cv2.waitKey()
+        if display_images:
+            cv2.imshow('Merged Image', merged_image)
+            cv2.waitKey()
 
         # calculate the merged image skeleton
         no_skeleton = False
@@ -235,8 +237,9 @@ def translation(estimator, upper, bottom, scale_factor):
             # draw skeleton on image
             merged_image_skeleton = TfPoseEstimator.draw_humans(merged_image, merged_image_parts, imgcopy=True)
             # present the skeleton
-            cv2.imshow('merged person result', merged_image_skeleton)
-            cv2.waitKey()
+            if display_images:
+                cv2.imshow('merged person result', merged_image_skeleton)
+                cv2.waitKey()
 
             # create original skeleton for comparision
             orig_image_parts = estimator.inference(orig_image, scales=scales)
@@ -275,28 +278,31 @@ def find_optimal_scaled_translated():
                                    [height_u, width_u]])
 
                 height_b, width_b, channels = bottom[0].shape
-                cv2.imshow('bottom result', bottom[0])
-                cv2.waitKey()
+                if display_images:
+                    cv2.imshow('bottom result', bottom[0])
+                    cv2.waitKey()
                 # Scale down and pad
                 scaled_bottom = cv2.resize(bottom[0], (int(width_b * factor), int(height_b * factor)), fx=factor,
                                            fy=factor, interpolation=cv2.INTER_AREA)
                 height_b, width_b, channels = scaled_bottom.shape
 
-                pts2 = []
-                for item in bboxes_bottom:
-                    if item[0] == bottom[1] and item[1] == factor:
-                        pts2 = item[2]
-                if pts2.size == 0:
-                    pts2 = np.float32([[0, width_b],
-                                       [height_b, 0],
-                                       [height_b, width_b]])
+                # pts2 = []
+                # for item in bboxes_bottom:
+                #     if item[0] == bottom[1] and item[1] == factor:
+                #         pts2 = item[2]
+                # if pts2.size == 0:
+                pts2 = np.float32([[0, width_b],
+                                   [height_b, 0],
+                                   [height_b, width_b]])
 
-                cv2.imshow('scaled bottom result', scaled_bottom)
-                cv2.waitKey()
+                if display_images:
+                    cv2.imshow('scaled bottom result', scaled_bottom)
+                    cv2.waitKey()
 
                 upper_affined_image = create_affined_image(upper, pts1, pts2)
-                cv2.imshow('affined result #1', upper_affined_image)
-                cv2.waitKey()
+                if display_images:
+                    cv2.imshow('affined result #1', upper_affined_image)
+                    cv2.waitKey()
 
                 # remove black pixel from affined image
                 # 1 Convert image into grayscale, and make in binary image for threshold value of 1.
@@ -305,16 +311,29 @@ def find_optimal_scaled_translated():
                 # 2  Find contours in image. There will be only one object, so find bounding rectangle for it
                 image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 cnt = contours[0]
-               # 3 Crop image and save it to another one
+                # 3 Crop image and save it to another one
                 x, y, w, h = cv2.boundingRect(cnt)
                 upper_affined_image = upper_affined_image[y:y + h, x:x + w].copy()
-                cv2.imshow('affined result #2', upper_affined_image)
-                cv2.waitKey()
+                if display_images:
+                    cv2.imshow('affined result #2', upper_affined_image)
+                    cv2.waitKey()
 
                 translation(estimator, upper_affined_image, scaled_bottom, factor)
 
 
+def normalize(values):
+    """
+    Scale to a 0 mean and unit variance
+    :param values:
+    :return:
+    """
+    x = np.asarray(values)
+    res = (x - x.mean()) / x.std()
+    return res
+
+
 if __name__ == '__main__':
+    display_images = False
     optimalParamsList = []
     lam = 0.3
     find_optimal_scaled_translated()
@@ -322,11 +341,14 @@ if __name__ == '__main__':
     rmses = []
     confidence = []
     for params in optimalParamsList:
-            rmse = params.normalize(params.rmse)
-            score = params.normalize(params.score)
-            confidence.append((1 - lam) * rmse + lam * score)
+            rmses.append(params.rmse)
+            scores.append(params.score)
 
-    max_index, max_value = max(enumerate(confidence), key=operator.itemgetter(1))
+    rmses = normalize(rmses)
+    scores = normalize(scores)
+    confidence.append((1 - lam) * rmses + lam * scores)
+
+    max_index, max_value = max(enumerate(confidence[0]), key=operator.itemgetter(1))
     max_item = optimalParamsList[max_index]
     print("Scale: {0} Translate: {1} ".format(max_item.scale, max_item.translate))
     cv2.imshow("Best Confidence Skeleton", max_item.skeleton_image)

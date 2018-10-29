@@ -1,11 +1,10 @@
-import os
-
 import cv2
 
 import PartialSkeleton
 import video_utils
 from estimator import TfPoseEstimator
 from networks import get_graph_path
+
 
 class CoordinateStore:
     def __init__(self):
