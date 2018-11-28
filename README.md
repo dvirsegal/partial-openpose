@@ -14,6 +14,17 @@ Original Video            |  Skeletonized Video
 :-------------------------:|:-------------------------:
 <img src="site/walking.gif" width="480" height="360" /> |  <img src="site/walking-skeleton.gif" width="480" height="360" />
 
+**The following image shows the algorithm flow (left to right):**
+
+* First a bottom image is given
+* An upper image is matched to the bottom part and a merged image is created
+* OpenPose skeleton is generated to the merged image
+* The skeleton result is reduced to bottom image only
+
+As can be seen below
+
+<img src="site/flow.JPG"/>
+
 **Project requirements:**
 
 * python 3.5 or above
@@ -27,10 +38,10 @@ To run the project, use python generate_partial_skeleton_from_video.py
 
 **The code can be found at:** 
 
-https://github.com/DeJaVoo/partial-openpose
+[](https://github.com/DeJaVoo/partial-openpose)
 
 **Results showing statistics over our training data:**
 
-https://github.com/DeJaVoo/partial-openpose/blob/master/results.xlsx
+[](https://github.com/DeJaVoo/partial-openpose/blob/master/results.xlsx)
 
 
