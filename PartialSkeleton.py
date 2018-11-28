@@ -12,7 +12,8 @@ from OptimalParams import OptimalParams
 from estimator import TfPoseEstimator
 from networks import get_graph_path
 import pickle
-
+import pandas as pd
+from pandas import DataFrame,Series
 
 def create_affined_image(image, pts_src, pts_dst):
     """
@@ -189,7 +190,7 @@ def skeletonize(estimator, given_image, hip, image_name):
     gc.collect()
 
 
-def translation(estimator, upper, bottom, scale_factor):
+def translation(estimator, upper,upper_name, bottom, bottom_name, scale_factor):
     height_u, width_u, channels = upper.shape
     height_b, width_b, channels = bottom.shape
     scales = None
@@ -249,8 +250,8 @@ def translation(estimator, upper, bottom, scale_factor):
             params.has_skeleton = not no_skeleton
             params.calculate_rmse()
             params.calculate_skeleton_score(merged_image_parts)
-            params.upper = upper
-            params.bottom = bottom
+            params.upper = [upper_name,upper]
+            params.bottom = [bottom_name,bottom]
             optimalParamsList.append(params)
         cv2.destroyAllWindows()
 
@@ -260,7 +261,7 @@ def find_optimal_scaled_translated():
     with open('human_points.pickle', 'rb') as handle:
         bboxes_bottom = pickle.load(handle)
     # read upper and bottom images
-    uppper_images = video_utils.load_images_from_folder("./images/upper/")
+    uppper_images = video_utils.load_images_from_folder("./images/upper/", True)
     bottom_images = video_utils.load_images_from_folder("./images/bottom/",True)
     w = 432
     h = 368
@@ -271,7 +272,7 @@ def find_optimal_scaled_translated():
             for factor in [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
                 # merge between upper and bottom
                 # create affined image
-                height_u, width_u, channels = upper.shape
+                height_u, width_u, channels = upper[0].shape
 
                 pts1 = np.float32([[0, width_u],
                                    [height_u, 0],
@@ -299,7 +300,7 @@ def find_optimal_scaled_translated():
                     cv2.imshow('scaled bottom result', scaled_bottom)
                     cv2.waitKey()
 
-                upper_affined_image = create_affined_image(upper, pts1, pts2)
+                upper_affined_image = create_affined_image(upper[0], pts1, pts2)
                 if display_images:
                     cv2.imshow('affined result #1', upper_affined_image)
                     cv2.waitKey()
@@ -318,7 +319,7 @@ def find_optimal_scaled_translated():
                     cv2.imshow('affined result #2', upper_affined_image)
                     cv2.waitKey()
 
-                translation(estimator, upper_affined_image, scaled_bottom, factor)
+                translation(estimator, upper_affined_image,upper[1], scaled_bottom,bottom[1], factor)
 
 
 def normalize(values):
@@ -337,18 +338,35 @@ if __name__ == '__main__':
     optimalParamsList = []
     lam = 0.3
     find_optimal_scaled_translated()
+    upper_names = []
+    bottom_names = []
     scores = []
     rmses = []
-    confidence = []
+    confidences = []
+    scales = []
+    translations = []
     for params in optimalParamsList:
+            bottom_names.append(params.bottom[0])
+            upper_names.append(params.upper[0])
             rmses.append(params.rmse)
             scores.append(params.score)
+            scales.append(params.scale)
+            translations.append(params.translate)
 
-    rmses = normalize(rmses)
-    scores = normalize(scores)
-    confidence.append((1 - lam) * rmses + lam * scores)
+    print("Mean of RMSEs:{}".format(sum(rmses)/float(len(rmses))))
+    rmses_normalized = normalize(rmses)
+    scores_normalized = normalize(scores)
+    confidences.append((1 - lam) * rmses_normalized + lam * scores_normalized)
 
-    max_index, max_value = max(enumerate(confidence[0]), key=operator.itemgetter(1))
+    writer = pd.ExcelWriter('results.xlsx')
+    df = DataFrame({'Bottom Sample ID': Series(bottom_names), 'Upper Sample ID': Series(upper_names),'Scale': Series(scales),
+                    'Translations': Series(translations), 'RMSE': Series(rmses), 'Sum Of OpenPose Skeleton Joints': Series(scores), 'Dvir\'s Confidence Score': Series(confidences[0])})
+    df.to_excel(writer, sheet_name='partial-open-pose', index=False)
+    df = DataFrame({'Bottom': Series(list(set(bottom_names))), 'Upper': Series(list(set(upper_names)))})
+    df.to_excel(writer, sheet_name='Images', index=False)
+    writer.save()
+
+    max_index, max_value = max(enumerate(confidences[0]), key=operator.itemgetter(1))
     max_item = optimalParamsList[max_index]
     print("Scale: {0} Translate: {1} ".format(max_item.scale, max_item.translate))
     cv2.imshow("Best Confidence Skeleton", max_item.skeleton_image)

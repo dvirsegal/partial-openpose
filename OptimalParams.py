@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 
 class OptimalParams(object):
@@ -21,7 +22,9 @@ class OptimalParams(object):
         self._translate = translate
         self._scale = scale
         self._upper = None
+        self._upper_name = None
         self._bottom = None
+        self._bottom_name = None
 
     @property
     def scale(self):
@@ -33,19 +36,21 @@ class OptimalParams(object):
 
     @property
     def upper(self):
-        return self._upper
+        return [self._upper_name,self._upper]
 
     @upper.setter
     def upper(self, value):
-        self._upper = value
+        self._upper_name = os.path.basename(value[0])
+        self._upper = value[1]
 
     @property
     def bottom(self):
-        return self._bottom
+        return [self._bottom_name,self._bottom]
 
     @bottom.setter
     def bottom(self, value):
-        self._bottom = value
+        self._bottom_name = os.path.basename(value[0])
+        self._bottom = value[1]
 
     @property
     def score(self):
