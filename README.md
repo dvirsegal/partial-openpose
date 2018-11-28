@@ -25,3 +25,12 @@ Original Video            |  Skeletonized Video
 
 To run the project, use python generate_partial_skeleton_from_video.py
 
+**The code can be found at:** 
+
+https://github.com/DeJaVoo/partial-openpose
+
+**Results showing statistics over our training data:**
+
+https://github.com/DeJaVoo/partial-openpose/blob/master/results.xlsx
+
+
