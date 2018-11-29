@@ -12,7 +12,7 @@ As can be seen in the following GIFs:
 
 Original Video            |  Skeletonized Video
 :-------------------------:|:-------------------------:
-<img src="site/walking.gif" /> |  <img src="site/walking-skeleton.gif" />
+<img src="site/walking.gif" width="480" height="360"/> |  <img src="site/walking-skeleton.gif" width="480" height="360"/>
 
 **The following images show the algorithm flow (left to right):**
 
