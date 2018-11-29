@@ -3,6 +3,10 @@
 The purpose of this project is to use [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose) system capabilities on partial human images.
 One of prerequisites of OpenPose system is to have a full body image, since it reconstructs the skeleton based on 16 points which generating the whole body parts.
 
+This limitation can cause failure in skeleton identification when part of body is missing as can be seen below:
+
+<img src="site/problem_demo.gif" width="480" height="360"/> 
+
 Our method is to wisely add the missing body part into the image and then run the OpenPose framework on it.
 The result is then manipulated to show the skeleton on the original body.
 
