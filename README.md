@@ -12,9 +12,9 @@ As can be seen in the following GIFs:
 
 Original Video            |  Skeletonized Video
 :-------------------------:|:-------------------------:
-<img src="site/walking.gif" width="480" height="360" /> |  <img src="site/walking-skeleton.gif" width="480" height="360" />
+<img src="site/walking.gif" /> |  <img src="site/walking-skeleton.gif" />
 
-**The following image shows the algorithm flow (left to right):**
+**The following images show the algorithm flow (left to right):**
 
 * First a bottom image is given
 * An upper image is matched to the bottom part and a merged image is created
