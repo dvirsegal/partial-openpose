@@ -1,22 +1,17 @@
 # Partial OpenPose
 
 The purpose of this project is to use [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose) system capabilities on partial human images.
-One of prerequisites of OpenPose system is to have a full body image, since it reconstructs the skeleton based on 16 points which generating the whole body parts.
 
-This limitation can cause failure in skeleton identification when part of body is missing as can be seen below:
+One of prerequisites of OpenPose system is to have a full body image, since it reconstructs the skeleton based on 16 points which generating the whole body parts. 
 
-<img src="site/problem_demo.gif" width="480" height="360"/> 
+This limitation can cause failure in identifying a skeleton where various body parts are missing. The GIF below demonstrate such case:
+
+<p align="center">
+  <img src="site/problem_demo.gif" width="480" height="360"/>
+</p>
 
 Our method is to wisely add the missing body part into the image and then run the OpenPose framework on it.
 The result is then manipulated to show the skeleton on the original body.
-
-We demonstarte our pruposed method on a video displaying a walking person (legs only).
-
-As can be seen in the following GIFs:
-
-Original Video            |  Skeletonized Video
-:-------------------------:|:-------------------------:
-<img src="site/walking.gif" width="480" height="360"/> |  <img src="site/walking-skeleton.gif" width="480" height="360"/>
 
 **The following images show the algorithm flow (left to right):**
 
@@ -25,9 +20,17 @@ Original Video            |  Skeletonized Video
 * OpenPose skeleton is generated to the merged image
 * The skeleton result is reduced to bottom image only
 
-As can be seen below
+As can be seen below:
 
 <img src="site/flow.JPG"/>
+
+We demonstarte our pruposed method on a video displaying a walking person (legs only).
+
+As can be seen in the following GIFs:
+
+Original Video            |  Skeletonized Video
+:-------------------------:|:-------------------------:
+<img src="site/walking.gif" width="480" height="360"/> |  <img src="site/walking-skeleton.gif" width="480" height="360"/>
 
 **Project requirements:**
 
