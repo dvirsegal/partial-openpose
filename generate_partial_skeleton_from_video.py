@@ -16,6 +16,28 @@ class CoordinateStore:
             self.points.append((x, y))
 
 
+def generate_skeletonize_video():
+    """
+    The method takes images , save a skeleton per image and creates a video output
+    :return:
+    """
+    input_folder = "./videos/demo/"
+    output_folder = "./videos"
+    results_folder = "./images/demo/"
+    input_video = "./videos/demo.mp4"
+    images = video_utils.load_images_from_folder(input_folder)
+    w = 432
+    h = 368
+    estimator = TfPoseEstimator(get_graph_path('mobilenet_thin'), target_size=(w, h))
+    count = 1
+    for i in images:
+        image_parts = estimator.inference(i, scales=None)
+        image_skeleton = TfPoseEstimator.draw_humans(i, image_parts, imgcopy=True)
+        cv2.imwrite(r".\images\demo\{}.png".format(count), image_skeleton)
+        count = count + 1
+    video_utils.create_video(input_video, results_folder, output_folder)
+
+
 if __name__ == '__main__':
     input_folder = "./videos/walking/"
     results_folder = "./images/results/"
@@ -25,7 +47,7 @@ if __name__ == '__main__':
     video_utils.split_video(input_video, input_folder)
     print("Video was splited")
     print("Loading all images")
-    images = video_utils.load_images_from_folder(input_folder)
+    images = video_utils.load_images_from_folder(input_folder, False, True)
     print("Loaded {} images from {} folder".format(images.__len__(), input_folder))
     first_image = images[0]
     # instantiate class
@@ -54,7 +76,7 @@ if __name__ == '__main__':
     estimator = TfPoseEstimator(get_graph_path('mobilenet_thin'), target_size=(w, h))
     count = 0
     for img in images:
-        PartialSkeleton.skeletonize(estimator,img, hip, count)
+        PartialSkeleton.skeletonize(estimator, img, hip, count)
         count += 1
 
     print("Creating output video...")
