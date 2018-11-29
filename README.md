@@ -8,6 +8,9 @@ This limitation can cause failure in identifying a skeleton where various body p
 
 <p align="center">
   <img src="site/problem_demo.gif" width="480" height="360"/>
+  <p align="center">
+    <em>Openpose limitation demonstration</em>
+  </p>
 </p>
 
 Our method is to wisely add the missing body part into the image and then run the OpenPose framework on it.
@@ -15,14 +18,19 @@ The result is then manipulated to show the skeleton on the original body.
 
 **The following images show the algorithm flow (left to right):**
 
-* First a bottom image is given
-* An upper image is matched to the bottom part and a merged image is created
-* OpenPose skeleton is generated to the merged image
-* The skeleton result is reduced to bottom image only
+1. First a bottom image is given
+2. An upper image is matched to the bottom part and a merged image is created
+3. OpenPose skeleton is generated to the merged image
+4. The skeleton result is reduced to bottom image only
 
 As can be seen below:
 
-<img src="site/flow.JPG"/>
+<p>
+  <img src="site/flow.JPG"/>
+  <p align="center">
+    <em>Algorithm flow from left to right</em>
+  </p>
+</p>
 
 We demonstarte our pruposed method on a video displaying a walking person (legs only).
 
