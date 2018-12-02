@@ -38,7 +38,7 @@ As can be seen in the following GIFs:
 
 Original Video            |  Skeletonized Video
 :-------------------------:|:-------------------------:
-<img src="site/walking.gif" width="480" height="360"/> |  <img src="site/walking-skeleton.gif" width="480" height="360"/>
+<img src="site/walking.gif" width="480" height="auto"/> |  <img src="site/walking-skeleton.gif" width="480" height="auto"/>
 
 **Project requirements:**
 
